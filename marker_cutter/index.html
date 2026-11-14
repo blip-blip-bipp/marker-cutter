@@ -1,0 +1,462 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Marker Cutter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:#0E1014; --panel:#151820; --panel2:#12151B; --raised:#181C24; --line:#262B35; --line2:#1F242D;
+    --ctl:#1B2029; --ctlLine:#3A4150; --text:#E7E9EE; --muted:#A3ACBA; --amber:#F5A524; --amberHi:#FFC861;
+    --ink:#1A1300; --ok:#7FD3A0; --err:#FF8A80; --seg:#232833; --off:#5A6272;
+    --mono:'JetBrains Mono',ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,system-ui,sans-serif;min-height:100vh;display:flex;flex-direction:column}
+  button{font-family:inherit;color:inherit}
+  h2{margin:0;font-size:15px;font-weight:600}
+  .mono{font-family:var(--mono)}
+  header{display:flex;flex-wrap:wrap;align-items:center;gap:16px;padding:16px 24px;border-bottom:1px solid var(--line);background:var(--panel2)}
+  .brand{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:700;letter-spacing:-.01em}
+  .sess{display:flex;flex-wrap:wrap;align-items:center;gap:8px;flex:1 1 320px;min-width:0}
+  .chip{padding:6px 10px;border:1px solid var(--line);border-radius:6px;background:var(--raised);font:13px var(--mono);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .muted{color:var(--muted)}
+  .btn{display:flex;align-items:center;gap:8px;min-height:44px;padding:0 16px;border:1px solid var(--ctlLine);border-radius:8px;background:var(--ctl);font-size:14px;font-weight:500;cursor:pointer}
+  .btn:hover{border-color:var(--amber)}
+  .btn:focus-visible,.row:focus-visible,.seg:focus-visible,.trk:focus-visible,.mode:focus-visible,.go:focus-visible{outline:2px solid var(--amberHi);outline-offset:2px}
+  .tl{padding:20px 24px 8px}
+  .tl-head{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:8px}
+  .label{font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+  .strip{display:flex;gap:2px;height:64px;border-radius:8px;overflow:hidden;background:var(--raised)}
+  .seg{min-width:0;border:none;padding:8px;text-align:left;cursor:pointer;display:flex;flex-direction:column;justify-content:space-between;overflow:hidden;background:var(--seg);color:#C9CFD9}
+  .seg.sel{background:var(--amber);color:var(--ink)}
+  .seg b{font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .seg span{font:11px var(--mono);white-space:nowrap}
+  main{display:flex;flex-wrap:wrap;gap:20px;padding:16px 24px 24px;align-items:flex-start}
+  .card{border:1px solid var(--line);border-radius:10px;background:var(--panel)}
+  .card-h{padding:14px 16px;border-bottom:1px solid var(--line)}
+  .regions{flex:999 1 560px;min-width:0}
+  .scroll-x{overflow-x:auto}
+  .grid{display:grid;grid-template-columns:20px 40px minmax(0,1fr) 100px 100px 90px;gap:12px;align-items:center}
+  .chk{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);cursor:pointer}
+  .chk input{width:18px;height:18px;accent-color:var(--amber)}
+  .thead{padding:10px 16px;font-size:12px;color:var(--muted);border-bottom:1px solid var(--line)}
+  .row{width:100%;min-height:48px;padding:0 16px;border:none;border-bottom:1px solid var(--line2);border-left:3px solid transparent;background:transparent;text-align:left;font-size:14px;cursor:pointer}
+  .row:hover{background:#191d27}
+  .row.sel{background:#2A2416;border-left-color:var(--amber)}
+  .row .nm{font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .t{font:13px var(--mono)}
+  .side{flex:1 1 380px;min-width:0;display:flex;flex-direction:column;gap:20px}
+  .modes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px;padding:4px;border-radius:8px;background:var(--bg);margin-top:12px}
+  .mode{min-height:40px;border:none;border-radius:6px;font-size:13px;font-weight:600;cursor:pointer;background:transparent;color:var(--muted)}
+  .mode[aria-pressed=true]{background:#2B313D;color:#fff}
+  .hint{font-size:13px;color:var(--muted);margin-top:12px;display:block}
+  .tracks{max-height:300px;overflow-y:auto;padding:6px 0}
+  .trk{display:flex;align-items:center;gap:12px;width:100%;min-height:40px;padding:0 16px;border:none;background:transparent;font-size:14px;text-align:left;cursor:pointer}
+  .trk:hover{background:#191d27}
+  .box{width:18px;height:18px;flex:none;border:1.5px solid var(--off);display:flex;align-items:center;justify-content:center}
+  .box.on{background:var(--amber);border-color:var(--amber)}
+  .trk .n{font:12px var(--mono);color:var(--muted);width:30px}
+  .trk .l{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .trk .s{font-size:12px;color:var(--muted)}
+  .export{padding:16px;display:flex;flex-direction:column;gap:14px}
+  .two{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  label.f{display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--muted)}
+  select,input[type=number],input[type=text]{min-height:40px;padding:0 10px;border:1px solid var(--ctlLine);border-radius:6px;background:var(--bg);color:var(--text);font-size:14px;width:100%}
+  input[type=text]{font:13px var(--mono)}
+  .sum{padding:12px;border-radius:8px;background:var(--bg);display:flex;flex-direction:column;gap:4px}
+  .sum b{font-size:14px;font-weight:600}
+  .sum span{font:12px var(--mono);color:var(--muted);word-break:break-all}
+  .go{min-height:48px;border:none;border-radius:8px;background:var(--amber);color:var(--ink);font-size:15px;font-weight:700;cursor:pointer}
+  .go:disabled{background:#3A3320;color:#8a7a4c;cursor:not-allowed}
+  .note{font-size:13px}
+  .err{color:var(--err)} .ok{color:var(--ok)}
+  .empty{padding:48px 24px;text-align:center;color:var(--muted)}
+  .pool,.builder{display:flex;flex-wrap:wrap;gap:6px}
+  .tag{min-height:32px;padding:0 10px;border:1px solid var(--ctlLine);border-radius:999px;background:var(--ctl);font-size:13px;cursor:pointer}
+  .tag:hover{border-color:var(--amber)}
+  .tag[aria-pressed=true]{opacity:.45;border-style:dashed}
+  .tag:focus-visible,.ct:focus-visible{outline:2px solid var(--amberHi);outline-offset:2px}
+  .builder{min-height:48px;padding:8px;border:1px dashed var(--ctlLine);border-radius:8px;background:var(--bg);align-items:center;position:relative}
+  .builder.empty-b{color:var(--muted);font-size:13px}
+  .ct{display:inline-flex;align-items:center;gap:6px;min-height:32px;padding:0 4px 0 8px;border-radius:6px;background:#2B313D;border:1px solid var(--ctlLine);font-size:13px;cursor:grab;user-select:none}
+  .ct .grip{color:var(--muted);letter-spacing:-2px;font-size:12px}
+  .ct .x{width:22px;height:22px;border:none;border-radius:4px;background:transparent;color:var(--muted);font-size:15px;line-height:1;cursor:pointer}
+  .ct .x:hover{background:#3A4150;color:var(--text)}
+  .ct.drag{opacity:.35}
+  .ct.ins-before{box-shadow:-3px 0 0 var(--amber)}
+  .builder.ins-end{box-shadow:inset -3px 0 0 var(--amber)}
+  .sep{color:var(--muted);font:12px var(--mono)}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#F5A524" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M4 12h2M8 7v10M12 4v16M16 8v8M20 11v2"/></svg>
+    Marker Cutter
+  </div>
+  <div class="sess">
+    <span class="chip" id="sessName">No session loaded</span>
+    <span class="muted" id="sessInfo" style="font-size:13px"></span>
+  </div>
+  <button class="btn" id="load" type="button">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+    Load session…
+  </button>
+</header>
+
+<div id="app" hidden>
+  <section class="tl" aria-label="Timeline">
+    <div class="tl-head"><span class="label">Timeline</span><span class="mono muted" style="font-size:12px" id="tlRange"></span></div>
+    <div class="strip" id="strip"></div>
+  </section>
+
+  <main>
+    <section class="card regions" aria-label="Regions">
+      <div class="card-h" style="display:flex;flex-wrap:wrap;align-items:center;gap:10px">
+        <h2 style="margin-right:auto">Songs <span class="muted" style="font-weight:400">· marker to next marker</span></h2>
+        <span class="muted" id="songCount" style="font-size:12px"></span>
+        <button class="btn" id="songsAll" type="button" style="min-height:36px;padding:0 12px;font-size:13px">Select all</button>
+        <button class="btn" id="songsNone" type="button" style="min-height:36px;padding:0 12px;font-size:13px">Deselect all</button>
+      </div>
+      <div class="scroll-x"><div style="min-width:560px">
+        <div class="grid thead"><span></span><span>#</span><span>Marker</span><span>Start</span><span>End</span><span>Length</span></div>
+        <div id="rows"></div>
+      </div></div>
+    </section>
+
+    <div class="side">
+      <section class="card" aria-label="Tracks">
+        <div class="card-h">
+          <h2>Tracks</h2>
+          <div class="modes" role="group" aria-label="Export mode" id="modes"></div>
+          <span class="hint" id="modeHint"></span>
+          <div style="display:flex;gap:8px;margin-top:12px;align-items:center">
+            <button class="btn" id="selAll" type="button" style="min-height:36px;padding:0 12px;font-size:13px">Select all</button>
+            <button class="btn" id="selNone" type="button" style="min-height:36px;padding:0 12px;font-size:13px">Deselect all</button>
+            <span class="muted" id="selCount" style="font-size:12px;margin-left:auto"></span>
+          </div>
+        </div>
+        <div class="tracks" id="tracks"></div>
+      </section>
+
+      <section class="card export" aria-label="Export">
+        <h2>Export</h2>
+        <div class="two">
+          <label class="f">Pre-roll (ms)<input type="number" id="pre" value="0" min="0"></label>
+          <label class="f">Post-roll (ms)<input type="number" id="post" value="0" min="0"></label>
+        </div>
+        <div class="f">
+          <span>File name · click a tag to add or remove it</span>
+          <div class="pool" id="pool" role="group" aria-label="Available file name tags"></div>
+          <span style="margin-top:4px">Order (drag to rearrange · Alt+←/→ moves the focused tag · Delete removes it)</span>
+          <div class="builder" id="builder" role="list" aria-label="File name order"></div>
+          <span>Tags are joined with “_” · files are WAV at the source bit depth</span>
+        </div>
+        <div class="f">
+          <span>Export folder</span>
+          <div style="display:flex;gap:8px">
+            <input type="text" id="outDir" aria-label="Export folder" style="flex:1;min-width:0">
+            <button class="btn" id="pickDir" type="button" style="min-height:40px;padding:0 12px">Choose…</button>
+          </div>
+        </div>
+        <label class="chk"><input type="checkbox" id="subfolders"> Subfolder per song <span class="muted" style="font-size:12px">(“017 Song name/…”, handy for many songs)</span></label>
+        <div class="sum"><b id="sumMain"></b><span id="sumEx"></span></div>
+        <button class="go" id="go" type="button" disabled>Export</button>
+        <span class="note" id="status" role="status"></span>
+      </section>
+    </div>
+  </main>
+</div>
+
+<div class="empty" id="empty">Loading…</div>
+
+<script>
+const S = { data:null, songs:new Set(), mode:'all', mono:-1, pair:[], off:new Set() };   // starts with no songs or tracks selected
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt = t => { t=Math.floor(t); const p=n=>String(n).padStart(2,'0'); return p(Math.floor(t/3600))+':'+p(Math.floor(t%3600/60))+':'+p(t%60); };
+const slug = s => s.replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,'-');
+
+async function loadSession(path) {
+  $('empty').hidden = false; $('empty').textContent = 'Reading session…'; $('empty').classList.remove('err');
+  const r = await fetch('/api/session' + (path ? '?path=' + encodeURIComponent(path) : ''));
+  const d = await r.json();
+  if (d.error) {
+    $('app').hidden = true;
+    $('empty').hidden = false;
+    if (d.error === 'no-session') $('empty').textContent = 'Click “Load session…” and choose a .tracks file.';
+    else { $('empty').textContent = d.error; $('empty').classList.add('err'); }
+    return;
+  }
+  S.data = d; S.songs = new Set(); S.mono = -1; S.pair = []; S.keepStatus = false;
+  S.off = new Set(d.tracks.map(t => t.index));   // "All tracks" mode: everything unticked until the user picks
+  $('empty').hidden = true; $('app').hidden = false;
+  render();
+}
+
+function render() {
+  const d = S.data;
+  $('sessName').textContent = d.name + '.tracks';
+  $('sessInfo').textContent = [d.sampleRate/1000 + ' kHz', d.bitDepth ? d.bitDepth + '-bit' : null,
+    d.tracks.length + ' tracks', d.regions.length + ' markers'].filter(Boolean).join(' · ');
+  $('tlRange').textContent = '00:00:00 – ' + fmt(d.totalSec);
+
+  const tick = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1A1300" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>';
+  $('strip').innerHTML = d.regions.map((r,i) => {
+    const on = S.songs.has(i);
+    return `<button type="button" class="seg${on?' sel':''}" data-r="${i}" aria-pressed="${on}" style="flex:${Math.max(r.lenSec,1)} 1 0" aria-label="${on?'Deselect':'Select'} song ${esc(r.name)}"><b>${esc(r.name)}</b><span>${fmt(r.startSec)}</span></button>`;
+  }).join('');
+  $('rows').innerHTML = d.regions.map((r,i) => {
+    const on = S.songs.has(i);
+    return `<button type="button" class="grid row${on?' sel':''}" data-r="${i}" aria-pressed="${on}"><span class="box${on?' on':''}" style="border-radius:4px">${on?tick:''}</span><span class="mono muted">${i+1}</span><span class="nm">${esc(r.name)}</span><span class="t">${fmt(r.startSec)}</span><span class="t">${fmt(r.endSec)}</span><span class="t muted">${fmt(r.lenSec)}</span></button>`;
+  }).join('');
+  $('songCount').textContent = `${S.songs.size} of ${d.regions.length} selected`;
+
+  const modes = [['mono','Mono track'],['stereo','Stereo pair'],['all','All tracks']];
+  $('modes').innerHTML = modes.map(([k,l]) => `<button type="button" class="mode" data-m="${k}" aria-pressed="${k===S.mode}">${l}</button>`).join('');
+  $('modeHint').textContent = {
+    mono:'Pick one track. Exports one file.',
+    stereo:'Tick two tracks: the first ticked is L, the second is R. Exports one interleaved stereo file.',
+    all:'Untick any track to skip it. Exports one file per track.' }[S.mode];
+
+  $('tracks').innerHTML = d.tracks.map((t,i) => {
+    let on, round;
+    if (S.mode==='mono') { on = i===S.mono; round='50%'; }
+    else if (S.mode==='stereo') { on = S.pair.includes(i); round='4px'; }
+    else { on = !S.off.has(i); round='4px'; }
+    const sub = t.channels==null ? 'no audio' : t.channels===1 ? 'mono' : t.channels===2 ? 'stereo' : t.channels+' ch';
+    const blocked = S.mode==='stereo' && t.channels!==1;   // a pair is built from two MONO tracks
+    const tag = blocked ? sub + ' · already stereo' : (S.mode==='stereo' && on) ? (S.pair[0]===i?'L':'R') + ' · ' + sub : sub;
+    return `<button type="button" class="trk" data-t="${i}" aria-pressed="${on}"${blocked?' disabled style="opacity:.4;cursor:not-allowed"':''}><span class="box${on?' on':''}" style="border-radius:${round}">${on?'<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1A1300" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>':''}</span><span class="n">${i+1}</span><span class="l">${esc(t.name)}</span><span class="s">${tag}</span></button>`;
+  }).join('');
+  summary();
+}
+
+function selectedTracks() {
+  const d = S.data;
+  if (S.mode==='mono') return S.mono >= 0 ? [d.tracks[S.mono]] : [];
+  if (S.mode==='stereo') return S.pair.map(i => d.tracks[i]);
+  return d.tracks.filter(t => !S.off.has(t.index));
+}
+
+function summary() {
+  const d = S.data, sel = selectedTracks();
+  const regs = [...S.songs].sort((x,y) => x-y).map(i => d.regions[i]);
+  const perSong = S.mode==='stereo' ? (sel.length===2 ? 1 : 0) : sel.length;
+  const files = perSong * regs.length;
+  // one "unit" per output file inside a song: a track, or a stereo pair of two mono tracks
+  const units = S.mode==='stereo'
+    ? (sel.length===2 ? [{ name: sel[0].name+'+'+sel[1].name, no: (sel[0].index+1)+'+'+(sel[1].index+1), ch: 2 }] : [])
+    : sel.map(t => ({ name: t.name, no: String(t.index+1), ch: t.channels || 1 }));
+  const pad3 = n => String(n).padStart(3,'0');
+  const nameFor = (r, u) => S.tags.map(t => ({ session: slug(d.name), marker: slug(r.name), date: d.createdDate || 'undated',
+      start: hmsDash(r.startSec), marker_no: pad3(r.number), track_no: u.no, track: slug(u.name) })[t]).join('_') + '.wav';
+  const sub = $('subfolders').checked;
+  let dup = null;
+  if (S.tags.length && files) {                 // would two files in the batch get the same path?
+    const seen = new Set();
+    for (const r of regs) for (const u of units) {
+      const key = (sub ? pad3(r.number) + '/' : '') + nameFor(r, u);
+      if (seen.has(key) && !dup) dup = nameFor(r, u);
+      seen.add(key);
+    }
+  }
+  const secs = regs.reduce((a, r) => a + r.lenSec, 0);
+  const bytes = units.reduce((a, u) => a + secs * d.sampleRate * ((d.bitDepth || 24) / 8) * u.ch, 0);
+  const size = bytes >= 1e9 ? (bytes/1e9).toFixed(1) + ' GB' : Math.max(1, Math.round(bytes/1e6)) + ' MB';
+  $('sumMain').textContent = !files ? '0 files'
+    : regs.length === 1 ? `${files} ${files===1?'file':'files'} · ${regs[0].name} · ${fmt(secs)} · ≈ ${size}`
+    : `${files} files · ${regs.length} songs × ${perSong} ${perSong===1?'track':'tracks'} · ≈ ${size}`;
+  const r0 = regs[0] || d.regions[0], u0 = units[0] || { name:'—', no:'—', ch:1 };
+  const folder0 = sub ? pad3(r0.number) + ' ' + r0.name + '/' : '';
+  $('sumEx').textContent = S.tags.length ? (files>1 ? 'e.g. ' : '') + folder0 + nameFor(r0, u0) : 'Add at least one tag to name the files.';
+  $('go').textContent = S.busy ? 'Exporting…' : files === 0 ? (regs.length === 0 ? 'Select songs to export' : 'Select tracks to export') : `Export ${files} ${files===1?'file':'files'}`;
+  $('go').disabled = S.busy || files === 0 || !S.tags.length || !!dup;
+  $('songsAll').disabled = $('songsNone').disabled = !!S.busy;
+  $('songCount').textContent = `${S.songs.size} of ${d.regions.length} selected`;
+  $('selAll').hidden = S.mode !== 'all';                       // "all" only makes sense for the multi-track mode
+  $('selAll').disabled = $('selNone').disabled = !!S.busy;
+  $('selCount').textContent = S.mode==='all' ? `${sel.length} of ${S.data.tracks.length} selected`
+    : S.mode==='stereo' ? `${sel.length} of 2 selected` : `${sel.length} of 1 selected`;
+  if (!S.busy && !S.keepStatus) {
+    const noTracks = S.mode==='stereo' ? 'Tick two tracks for a stereo pair.' : 'No tracks selected.';
+    $('status').textContent = !regs.length && !perSong ? 'Select songs and tracks to export.'
+      : !regs.length ? 'No songs selected.'
+      : !perSong ? noTracks
+      : !S.tags.length ? 'Add at least one tag to name the files.'
+      : dup ? `Two files would get the same name (“${dup}”). Add Marker number, Marker start time or Track name, or tick “Subfolder per song”.` : '';
+    $('status').className = 'note muted';
+  }
+}
+
+// ---- file name tags: pool (click to add/remove) + builder (drag to reorder)
+const TAGS = [
+  ['session',   'Session name'],
+  ['marker',    'Marker name'],
+  ['date',      'Session creation date'],
+  ['start',     'Marker start time'],
+  ['marker_no', 'Marker number (001)'],
+  ['track_no',  'Track number'],
+  ['track',     'Track name'],
+];
+const TAG_LABEL = Object.fromEntries(TAGS);
+S.tags = ['session', 'track', 'marker'];            // default: session_trackname_marker
+const hmsDash = t => { t = Math.floor(t); const p = n => String(n).padStart(2,'0'); return p(Math.floor(t/3600)) + '-' + p(Math.floor(t%3600/60)) + '-' + p(t%60); };
+
+function tagsChanged(focusIdx) {
+  S.keepStatus = false;
+  renderTags();
+  if (S.data) summary();
+  if (focusIdx != null) { const el = $('builder').querySelector(`[data-i="${focusIdx}"]`); if (el) el.focus(); }
+}
+function renderTags() {
+  $('pool').innerHTML = TAGS.map(([id, label]) =>
+    `<button type="button" class="tag" data-tag="${id}" aria-pressed="${S.tags.includes(id)}">${label}</button>`).join('');
+  const b = $('builder');
+  b.classList.toggle('empty-b', !S.tags.length);
+  b.innerHTML = S.tags.length ? S.tags.map((id, i) =>
+    (i ? '<span class="sep" aria-hidden="true">_</span>' : '') +
+    `<span class="ct" role="listitem" tabindex="0" draggable="true" data-i="${i}" aria-label="${TAG_LABEL[id]}, position ${i+1} of ${S.tags.length}"><span class="grip" aria-hidden="true">⋮⋮</span>${TAG_LABEL[id]}<button type="button" class="x" data-x="${i}" aria-label="Remove ${TAG_LABEL[id]}">×</button></span>`
+  ).join('') : 'Click a tag above to start the file name';
+}
+function moveTag(from, to) {            // `to` = insertion index in the list as it is before removal
+  if (from < 0 || from >= S.tags.length) return from;
+  to = Math.max(0, Math.min(S.tags.length, to));
+  const [t] = S.tags.splice(from, 1);
+  if (to > from) to -= 1;
+  S.tags.splice(to, 0, t);
+  return to;
+}
+let dragIdx = null;
+function dropIndex(e) {                 // where would a drop at the pointer insert?
+  const chips = [...$('builder').querySelectorAll('.ct')];
+  for (let i = 0; i < chips.length; i++) {
+    const r = chips[i].getBoundingClientRect();
+    if (e.clientY < r.top) return i;                                   // pointer on a row above this chip
+    if (e.clientY <= r.bottom && e.clientX < r.left + r.width / 2) return i;
+  }
+  return chips.length;
+}
+function clearInsert() { document.querySelectorAll('.ins-before').forEach(x => x.classList.remove('ins-before')); $('builder').classList.remove('ins-end'); }
+
+function selectNone() {
+  if (S.mode==='mono') S.mono = -1;
+  else if (S.mode==='stereo') S.pair = [];
+  else S.off = new Set(S.data.tracks.map(t => t.index));
+  S.keepStatus = false; render();
+}
+function selectAll() {
+  if (S.mode==='all') { S.off = new Set(); S.keepStatus = false; render(); }
+}
+
+function setStatus(text, cls) { S.keepStatus = true; $('status').textContent = text; $('status').className = 'note ' + (cls||'muted'); }
+
+async function post(url, body) {
+  const r = await fetch(url, { method:'POST', headers:{'X-Marker-Cutter':'1','Content-Type':'application/json'}, body: JSON.stringify(body||{}) });
+  return r.json();
+}
+
+async function doExport(overwrite) {
+  const sel = selectedTracks();
+  const req = { path:S.data.path, regions:[...S.songs].sort((a,b)=>a-b), songFolders:$('subfolders').checked, mode:S.mode, tracks:sel.map(t=>t.index),
+    preMs:$('pre').value, postMs:$('post').value, pattern:S.tags.map(t => '{' + t + '}').join('_'), outDir:$('outDir').value, overwrite:!!overwrite };
+  S.busy = true; S.keepStatus = false; summary(); setStatus('Starting…');
+  const r = await post('/api/export', req);
+  if (r.error === 'exists') {
+    S.busy = false; summary();
+    const list = r.existing.slice(0,5).join('\n') + (r.existing.length>5 ? `\n…and ${r.existing.length-5} more` : '');
+    if (confirm(`${r.existing.length} file(s) already exist in\n${r.outDir}\n\n${list}\n\nOverwrite them?`)) return doExport(true);
+    return setStatus('Cancelled — nothing was overwritten.');
+  }
+  if (r.error) { S.busy = false; summary(); return setStatus(r.error, 'err'); }
+  for (;;) {
+    await new Promise(res => setTimeout(res, 400));
+    const j = await (await fetch('/api/job?id=' + r.job)).json();
+    if (j.error) { S.busy = false; summary(); return setStatus(`Stopped at ${j.done}/${j.total}: ${j.error}`, 'err'); }
+    if (j.finished) {
+      S.busy = false; summary();
+      const sk = j.skipped.length ? ` (${j.skipped.length} had no audio in this range and were skipped)` : '';
+      return setStatus(`Done. ${j.files.length} ${j.files.length===1?'file':'files'} written to ${j.outDir}${sk}`, 'ok');
+    }
+    setStatus(`Exporting ${j.done + 1} of ${j.total} · ${j.current}`);
+  }
+}
+
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-r],[data-m],[data-t]'); if (!b) return;
+  if (S.busy) return;                       // don't change the selection mid-export
+  S.keepStatus = false;
+  if (b.dataset.r !== undefined) { const i = +b.dataset.r; S.songs.has(i) ? S.songs.delete(i) : S.songs.add(i); }
+  else if (b.dataset.m) S.mode = b.dataset.m;
+  else {
+    const i = +b.dataset.t;
+    if (S.mode==='mono') S.mono = i;
+    else if (S.mode==='stereo') { const k = S.pair.indexOf(i); if (k>=0) S.pair.splice(k,1); else { S.pair.push(i); if (S.pair.length>2) S.pair.shift(); } }
+    else { S.off.has(i) ? S.off.delete(i) : S.off.add(i); }
+  }
+  render();
+});
+$('pool').addEventListener('click', e => {
+  const b = e.target.closest('[data-tag]'); if (!b || S.busy) return;
+  const id = b.dataset.tag, k = S.tags.indexOf(id);
+  if (k >= 0) S.tags.splice(k, 1); else S.tags.push(id);
+  tagsChanged();
+});
+$('builder').addEventListener('click', e => {
+  const x = e.target.closest('[data-x]'); if (!x || S.busy) return;
+  S.tags.splice(+x.dataset.x, 1); tagsChanged();
+});
+$('builder').addEventListener('keydown', e => {
+  const c = e.target.closest('.ct'); if (!c || e.target.classList.contains('x') || S.busy) return;
+  const i = +c.dataset.i;
+  if (e.altKey && (e.key === 'ArrowLeft' || e.key === 'ArrowRight')) {
+    e.preventDefault();
+    const j = moveTag(i, e.key === 'ArrowLeft' ? i - 1 : i + 2);
+    tagsChanged(j);
+  } else if (e.key === 'Delete' || e.key === 'Backspace') {
+    e.preventDefault(); S.tags.splice(i, 1); tagsChanged(Math.min(i, S.tags.length - 1));
+  }
+});
+$('builder').addEventListener('dragstart', e => {
+  const c = e.target.closest('.ct'); if (!c || S.busy) return e.preventDefault();
+  dragIdx = +c.dataset.i; e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', S.tags[dragIdx]);
+  requestAnimationFrame(() => c.classList.add('drag'));
+});
+$('builder').addEventListener('dragover', e => {
+  if (dragIdx === null) return;
+  e.preventDefault(); e.dataTransfer.dropEffect = 'move';
+  clearInsert();
+  const to = dropIndex(e), chips = $('builder').querySelectorAll('.ct');
+  if (to >= chips.length) $('builder').classList.add('ins-end'); else chips[to].classList.add('ins-before');
+});
+$('builder').addEventListener('dragleave', e => { if (!$('builder').contains(e.relatedTarget)) clearInsert(); });
+$('builder').addEventListener('drop', e => {
+  if (dragIdx === null) return;
+  e.preventDefault();
+  const j = moveTag(dragIdx, dropIndex(e));
+  dragIdx = null; clearInsert(); tagsChanged(j);
+});
+$('builder').addEventListener('dragend', () => { dragIdx = null; clearInsert(); renderTags(); });
+renderTags();
+$('go').addEventListener('click', () => doExport(false));
+$('songsAll').addEventListener('click', () => { if (S.busy) return; S.songs = new Set(S.data.regions.map((_, i) => i)); S.keepStatus = false; render(); });
+$('songsNone').addEventListener('click', () => { if (S.busy) return; S.songs = new Set(); S.keepStatus = false; render(); });
+$('subfolders').addEventListener('change', () => { S.keepStatus = false; if (S.data) summary(); });
+$('selAll').addEventListener('click', selectAll);
+$('selNone').addEventListener('click', selectNone);
+$('load').addEventListener('click', async () => {
+  const d = await post('/api/pick');
+  if (d.path) loadSession(d.path);
+});
+$('pickDir').addEventListener('click', async () => {
+  const d = await post('/api/pickdir');
+  if (d.path) $('outDir').value = d.path;
+});
+fetch('/api/defaults').then(r => r.json()).then(d => { $('outDir').value = d.outDir; });
+loadSession('');
+</script>
+</body>
+</html>
