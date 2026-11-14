@@ -4,3 +4,5 @@ __pycache__/
 # per-user state and build output
 marker_cutter/last_session.txt
 Marker Cutter.app/
+build/
+dist/

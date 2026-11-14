@@ -49,6 +49,29 @@ The app points at this folder, so re-run the script if you move it. Server log:
 The server only listens on `127.0.0.1`, only answers requests addressed to localhost, and only
 exports for requests that come from its own page.
 
+## Native app (macOS and Windows)
+
+A real desktop window instead of a browser tab, built with [pywebview](https://pywebview.flowrl.com/)
+and [PyInstaller](https://pyinstaller.org/). Use Python 3.12 or 3.13 on Windows.
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements-app.txt
+python3 marker_cutter/app.py                               # run it from source
+pyinstaller --noconfirm packaging/marker_cutter.spec       # build dist/Marker Cutter.app (or dist\Marker Cutter\ on Windows)
+```
+
+Or let GitHub build both: Actions tab → **Build app** → *Run workflow*, then download the zips from
+the run's artifacts (`macos-arm64`, `windows-x64`).
+
+Sharing the result: the apps are **not notarized or code-signed with a developer certificate**, so
+macOS blocks the first launch (System Settings → Privacy & Security → *Open Anyway*) and Windows
+SmartScreen shows a warning (*More info → Run anyway*). A paid Apple Developer ID and a Windows
+code-signing certificate remove those prompts.
+
+Per-user settings (the last session) are stored in `~/Library/Application Support/MarkerCutter`
+(macOS) or `%APPDATA%\MarkerCutter` (Windows).
+
 ## Command line
 
 `split_at_markers.py` is the engine behind the GUI and works on its own:
@@ -77,5 +100,8 @@ Run with `-h` for all options.
 split_at_markers.py        session parser + WAV slicing engine, and the command-line tool
 marker_cutter/server.py    local web server (stdlib only) wrapping the engine
 marker_cutter/index.html   the GUI (plain HTML/CSS/JS)
-macos/                     builds the double-clickable launcher app
+marker_cutter/app.py       native window (pywebview) around the same server and page
+packaging/                 PyInstaller spec for the native app
+macos/                     alternative: double-clickable launcher that opens the browser version
+.github/workflows/         builds the macOS and Windows apps on GitHub
 ```

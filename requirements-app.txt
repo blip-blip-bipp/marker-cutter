@@ -1,0 +1,4 @@
+# Needed only to run or build the native desktop app (the browser version uses the standard library only).
+# Use Python 3.12 or 3.13: on Windows, pywebview's .NET bridge (pythonnet) lags the newest Python releases.
+pywebview>=5
+pyinstaller>=6.11

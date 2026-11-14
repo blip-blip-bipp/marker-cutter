@@ -22,7 +22,26 @@ sys.path.insert(0, os.path.dirname(HERE))  # import the existing backend: ../spl
 import split_at_markers as core  # noqa: E402
 
 PORT = int(os.environ.get("MARKER_CUTTER_PORT", "8765"))
-LAST_FILE = os.path.join(HERE, "last_session.txt")   # remembers the last session so a launcher needs no arguments
+ALLOWED_HOSTS = set()   # Host headers we answer; filled in once the server knows its real port
+
+
+def user_data_dir():
+    """Per-user, writable settings folder (the app bundle itself may be read-only)."""
+    if sys.platform == "darwin":
+        base = os.path.expanduser("~/Library/Application Support")
+    elif sys.platform == "win32":
+        base = os.environ.get("APPDATA") or os.path.expanduser("~")
+    else:
+        base = os.environ.get("XDG_CONFIG_HOME") or os.path.expanduser("~/.config")
+    d = os.path.join(base, "MarkerCutter")
+    try:
+        os.makedirs(d, exist_ok=True)
+    except OSError:
+        pass
+    return d
+
+
+LAST_FILE = os.path.join(user_data_dir(), "last_session.txt")   # remembers the last session between launches
 
 
 def _read_last():
@@ -33,7 +52,7 @@ def _read_last():
         return ""
 
 
-DEFAULT_SESSION = sys.argv[1] if len(sys.argv) > 1 else _read_last()
+DEFAULT_SESSION = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else _read_last()
 
 
 def session_created_date(tpath, base):
@@ -92,20 +111,41 @@ def describe_session(path):
     }
 
 
+DIALOGS = {"session": None, "folder": None}   # the native app window plugs its own pickers in here
+
+
+def set_dialogs(session=None, folder=None):
+    """Register file/folder pickers (each returns a path string, or '' if cancelled)."""
+    DIALOGS["session"], DIALOGS["folder"] = session, folder
+
+
 def pick_session_dialog():
-    """Native macOS file picker (so the browser doesn't need a filesystem path)."""
+    """Choose a .tracks file so the browser doesn't need a filesystem path."""
+    if DIALOGS["session"]:
+        return DIALOGS["session"]() or ""
+    if sys.platform != "darwin":
+        return ""   # plain-browser mode outside macOS: type the path on the command line instead
     script = ('POSIX path of (choose file with prompt "Choose a Tracks Live session (.tracks)" '
               'of type {"tracks", "public.data"})')
     r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
     return r.stdout.strip() if r.returncode == 0 else ""
 
 
-DEFAULT_OUT = os.path.expanduser("~/Desktop/Marker Cutter")
+def _default_out():
+    desktop = os.path.expanduser("~/Desktop")
+    return os.path.join(desktop if os.path.isdir(desktop) else os.path.expanduser("~"), "Marker Cutter")
+
+
+DEFAULT_OUT = _default_out()
 JOBS = {}
 JOBS_LOCK = threading.Lock()
 
 
 def pick_folder_dialog():
+    if DIALOGS["folder"]:
+        return DIALOGS["folder"]() or ""
+    if sys.platform != "darwin":
+        return ""
     script = 'POSIX path of (choose folder with prompt "Choose the export folder")'
     r = subprocess.run(["osascript", "-e", script], capture_output=True, text=True)
     return r.stdout.strip().rstrip("/") if r.returncode == 0 else ""
@@ -199,7 +239,7 @@ class Handler(BaseHTTPRequestHandler):
 
     def _host_ok(self):
         # only answer requests addressed to localhost (blocks DNS-rebinding tricks)
-        return self.headers.get("Host", "") in (f"127.0.0.1:{PORT}", f"localhost:{PORT}")
+        return self.headers.get("Host", "") in ALLOWED_HOSTS
 
     def _json(self, obj, code=200):
         body = json.dumps(obj).encode()
@@ -276,14 +316,23 @@ class Handler(BaseHTTPRequestHandler):
         self.send_error(404)
 
 
+def start_server(port=0):
+    """Bind 127.0.0.1 (port 0 = any free port). Returns (server, port); caller runs serve_forever()."""
+    srv = ThreadingHTTPServer(("127.0.0.1", port), Handler)
+    real = srv.server_address[1]
+    ALLOWED_HOSTS.clear()
+    ALLOWED_HOSTS.update({f"127.0.0.1:{real}", f"localhost:{real}"})
+    return srv, real
+
+
 if __name__ == "__main__":
     try:
-        srv = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+        srv, port = start_server(PORT)
     except OSError:
         sys.exit(f"Port {PORT} is already in use - Marker Cutter is probably already running.\n"
-                 f"Open http://127.0.0.1:{PORT} in your browser, or stop the old one first:\n"
-                 f"    kill $(lsof -nP -iTCP:{PORT} -sTCP:LISTEN -t)")
-    print(f"Marker Cutter running at http://127.0.0.1:{PORT}  (Ctrl+C to stop)")
+                 f"Open http://127.0.0.1:{PORT} in your browser, or stop the old one first "
+                 f"(macOS/Linux: kill $(lsof -nP -iTCP:{PORT} -sTCP:LISTEN -t)).")
+    print(f"Marker Cutter running at http://127.0.0.1:{port}  (Ctrl+C to stop)")
     try:
         srv.serve_forever()
     except KeyboardInterrupt:

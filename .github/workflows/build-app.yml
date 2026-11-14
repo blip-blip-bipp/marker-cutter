@@ -1,0 +1,37 @@
+name: Build app
+
+# Manual trigger only (Actions tab > "Build app" > Run workflow), so pushing never spends build minutes.
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-14          # Apple Silicon
+            name: macos-arm64
+          - os: windows-latest
+            name: windows-x64
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install build dependencies
+        run: python -m pip install -r requirements-app.txt
+      - name: Build
+        run: pyinstaller --noconfirm packaging/marker_cutter.spec
+      - name: Zip (macOS)
+        if: runner.os == 'macOS'
+        run: ditto -c -k --sequesterRsrc --keepParent "dist/Marker Cutter.app" "MarkerCutter-${{ matrix.name }}.zip"
+      - name: Zip (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "dist/Marker Cutter" -DestinationPath "MarkerCutter-${{ matrix.name }}.zip"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: MarkerCutter-${{ matrix.name }}
+          path: MarkerCutter-${{ matrix.name }}.zip
