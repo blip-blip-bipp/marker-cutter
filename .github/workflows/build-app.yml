@@ -1,8 +1,12 @@
 name: Build app
 
-# Manual trigger only (Actions tab > "Build app" > Run workflow), so pushing never spends build minutes.
+# Run by hand (Actions tab > "Build app" > Run workflow). It also runs on pushes to the standalone-app
+# branch, because GitHub only offers the manual button for workflows that exist on the default branch.
+# Once this is merged into main, the push trigger can be removed.
 on:
   workflow_dispatch:
+  push:
+    branches: [standalone-app]
 
 jobs:
   build:
