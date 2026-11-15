@@ -181,10 +181,11 @@
           <span>Tags are joined with “_” · files are WAV at the source bit depth</span>
         </div>
         <div class="f">
-          <span>Export folder</span>
+          <span>Export folder · defaults to this session’s “Rendered Files” folder</span>
+          <input type="text" id="outDir" aria-label="Export folder">
           <div style="display:flex;gap:8px">
-            <input type="text" id="outDir" aria-label="Export folder" style="flex:1;min-width:0">
             <button class="btn" id="pickDir" type="button" style="min-height:40px;padding:0 12px">Choose…</button>
+            <button class="btn" id="dirDefault" type="button" title="Back to this session’s Rendered Files folder" style="min-height:40px;padding:0 12px">Back to default</button>
           </div>
         </div>
         <label class="chk"><input type="checkbox" id="subfolders"> Subfolder per song <span class="muted" style="font-size:12px">(“017 Song name/…”, handy for many songs)</span></label>
@@ -233,6 +234,7 @@ async function loadSession(path) {
   }
   S.data = d; S.songs = new Set(); S.mono = -1; S.pair = []; S.keepStatus = false;
   S.off = new Set(d.tracks.map(t => t.index));   // "All tracks" mode: everything unticked until the user picks
+  if (d.defaultOutDir) $('outDir').value = d.defaultOutDir;   // each session exports to its own "Rendered Files" folder
   $('empty').hidden = true; $('app').hidden = false;
   render();
 }
@@ -495,7 +497,9 @@ $('pickDir').addEventListener('click', async () => {
   const d = await post('/api/pickdir');
   if (d.path) $('outDir').value = d.path;
 });
-fetch('/api/defaults').then(r => r.json()).then(d => { $('outDir').value = d.outDir; });
+$('dirDefault').addEventListener('click', () => { if (S.data && S.data.defaultOutDir) $('outDir').value = S.data.defaultOutDir; });
+// general fallback folder, only used until a session is loaded (never overrides a session's own default)
+fetch('/api/defaults').then(r => r.json()).then(d => { if (!S.data && !$('outDir').value) $('outDir').value = d.outDir; });
 loadSession('');
 </script>
 </body>

@@ -51,8 +51,9 @@ Known issues:
 
 1. Open the app and click **Load session…**, then choose the session's `.tracks` file. It reopens the
    last session you used next time.
-2. Tick the songs and tracks you want. Choose how the files are named, the export folder, and any
-   pre/post-roll.
+2. Tick the songs and tracks you want. Choose how the files are named and any pre/post-roll. Files are
+   exported to the session's own `Rendered Files` folder (the one Tracks Live creates next to
+   `Audio Files`) unless you pick another with **Choose…**; **Back to default** returns to it.
 3. Click **Export**. If files already exist you are asked before anything is overwritten.
 
 Per-user settings (the last session) are stored in `~/Library/Application Support/MarkerCutter`

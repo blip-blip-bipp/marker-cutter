@@ -60,6 +60,12 @@ class NoMarkersError(Exception):
     """The session loaded fine but has nothing to cut."""
 
 
+def session_render_dir(base):
+    """Where exports go by default: the 'Rendered Files' folder Tracks Live creates inside every session
+    (created on export if the session doesn't have one yet)."""
+    return os.path.join(base, "Rendered Files")
+
+
 def explain_load_error(path, exc):
     """Plain-language reason a session couldn't be opened (instead of a raw Python exception)."""
     p = os.path.expanduser(path)
@@ -129,6 +135,7 @@ def describe_session(path):
         "sampleRate": sr,
         "bitDepth": bit_depth,
         "createdDate": session_created_date(tpath, base),
+        "defaultOutDir": session_render_dir(base),      # Tracks Live's own "Rendered Files" folder in the session
         "totalSec": end / sr,
         "tracks": out_tracks,
         "regions": regions,
@@ -202,7 +209,7 @@ def plan_export(req):
     unknown = set(re.findall(r"\{(\w+)\}", pattern)) - set(FILENAME_TAGS)
     if unknown:
         raise ValueError("unknown file name tag(s): " + ", ".join(sorted(unknown)))
-    out_dir = os.path.expanduser(req.get("outDir") or DEFAULT_OUT)
+    out_dir = os.path.expanduser(req.get("outDir") or session_render_dir(base))
 
     if mode == "stereo":
         if len(idx) != 2:
