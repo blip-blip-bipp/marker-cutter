@@ -29,7 +29,7 @@ if sys.platform == "darwin":
         icon=ICNS,
         bundle_identifier="com.markercutter.app",
         info_plist={
-            "CFBundleShortVersionString": "1.6",
+            "CFBundleShortVersionString": "1.7",
             "NSHighResolutionCapable": True,
             # shown in the macOS permission prompts when the app first touches these locations
             "NSDesktopFolderUsageDescription": "Marker Cutter saves exported audio to a folder you choose.",

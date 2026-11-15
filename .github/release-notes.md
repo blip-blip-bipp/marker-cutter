@@ -2,9 +2,15 @@ Standalone desktop app that cuts a **Waves Tracks Live** session into per-song W
 It reads the saved `.tracks` file and the session's audio, and writes new files; your session and
 recordings are never modified.
 
-## What's new in v1.6
+## What's new in v1.7
 
-- New app icon on macOS and Windows, drawn from the Marker Cutter logo.
+- **Exports go to the session's `Rendered Files` folder by default** (the folder Tracks Live creates next to
+  `Audio Files`). Choose another folder any time, and use **Back to default** to return.
+- **Clear messages when a session can't be opened**, instead of a raw error: for example when the last
+  session is on a drive that isn't connected, with a **Try again** button.
+- **Sessions with no markers** no longer crash the app; it tells you to add markers in Tracks Live first.
+
+Earlier: v1.6 added the new app icon on macOS and Windows.
 
 ## Downloads
 
