@@ -12,8 +12,9 @@ elsewhere. It never modifies your session or your recordings, and Tracks Live do
 
 ## Get the app
 
-There are no tagged releases yet. Builds come from the **Build app** GitHub Action
-(Actions tab → *Build app* → latest run → *Artifacts*), or you can build it yourself (see
+Download the latest build from the repository's **Releases** page (v1.5 is the first release), which has a
+zip for macOS (Apple Silicon) and one for Windows. You can also grab fresh builds from the **Build app**
+GitHub Action (Actions tab → *Build app* → latest run → *Artifacts*), or build it yourself (see
 [Build it yourself](#build-it-yourself)).
 
 | Platform | Status |
@@ -69,9 +70,9 @@ python3 marker_cutter/app.py                               # run the app from so
 pyinstaller --noconfirm packaging/marker_cutter.spec       # build dist/Marker Cutter.app (or dist\Marker Cutter\ on Windows)
 ```
 
-To let GitHub build it instead: Actions tab → **Build app** → *Run workflow* (or push to the
-`standalone-app` branch, which also triggers it). The workflow file only offers the manual button once it
-exists on the default branch.
+To let GitHub build it instead: Actions tab → **Build app** → *Run workflow*. Pushing a version tag
+(for example `git tag v1.6 && git push origin v1.6`) builds both apps and publishes them as a release,
+using the text in `.github/release-notes.md`.
 
 ## Browser version (no install needed)
 

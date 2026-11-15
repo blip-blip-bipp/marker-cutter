@@ -1,12 +1,11 @@
 name: Build app
 
-# Run by hand (Actions tab > "Build app" > Run workflow). It also runs on pushes to the standalone-app
-# branch, because GitHub only offers the manual button for workflows that exist on the default branch.
-# Once this is merged into main, the push trigger can be removed.
+# Run by hand (Actions tab > "Build app" > Run workflow) to get build artifacts, or push a version tag
+# (for example v1.5) to build both apps and publish them as a GitHub release.
 on:
   workflow_dispatch:
   push:
-    branches: [standalone-app]
+    tags: ["v*"]
 
 jobs:
   build:
@@ -39,3 +38,26 @@ jobs:
         with:
           name: MarkerCutter-${{ matrix.name }}
           path: MarkerCutter-${{ matrix.name }}.zip
+
+  release:
+    # only for version tags: attach both builds to a GitHub release named after the tag
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: MarkerCutter-*
+          merge-multiple: true
+          path: release-files
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" release-files/*.zip \
+            --repo "$GITHUB_REPOSITORY" \
+            --title "Marker Cutter $GITHUB_REF_NAME" \
+            --notes-file .github/release-notes.md
