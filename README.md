@@ -18,13 +18,11 @@ There are no tagged releases yet. Builds come from the **Build app** GitHub Acti
 
 | Platform | Status |
 |---|---|
-| macOS (Apple Silicon) | Built and tested locally: launches, loads a session, exports files. About 25 MB. |
-| Windows (x64) | Builds successfully on GitHub Actions (about 13 MB zip). **Not yet run on a real Windows machine.** |
+| macOS (Apple Silicon) | Tested: a local build launches, loads a session and exports files. Also builds on GitHub Actions (`macos-15`, about 10 MB zip); that CI build itself has not been run yet. |
+| Windows (x64) | Builds successfully on GitHub Actions (about 12 MB zip). **Not yet run on a real Windows machine.** |
 
 Known issues:
 
-- The GitHub-hosted macOS job currently does not start for this repository (GitHub reports the macOS
-  runner configuration as unsupported), so the macOS app is built locally for now.
 - The apps are **not notarized or code-signed with a developer certificate**. macOS blocks the first
   launch (System Settings → Privacy & Security → *Open Anyway*) and Windows SmartScreen shows a warning
   (*More info → Run anyway*). A paid Apple Developer ID and a Windows code-signing certificate remove
