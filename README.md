@@ -128,6 +128,8 @@ marker_cutter/app.py       native window (pywebview) around the local server and
 marker_cutter/server.py    local web server (stdlib only) wrapping the engine
 marker_cutter/index.html   the GUI (plain HTML/CSS/JS)
 packaging/                 PyInstaller spec for the native app
+packaging/icons/           app icon (.icns for macOS, .ico for Windows, plus the source iconset)
+packaging/make_icons.swift redraws the icon from the logo's vector (make_ico.py joins the Windows sizes)
 macos/                     alternative: double-clickable launcher that opens the browser version
 .github/workflows/         builds the macOS and Windows apps on GitHub
 ```

@@ -6,6 +6,9 @@ import sys
 
 ROOT = os.path.abspath(os.path.join(SPECPATH, ".."))   # SPECPATH is provided by PyInstaller
 APP_DIR = os.path.join(ROOT, "marker_cutter")
+ICON_DIR = os.path.join(ROOT, "packaging", "icons")    # regenerate with packaging/make_icons.swift + make_ico.py
+ICNS = os.path.join(ICON_DIR, "AppIcon.icns")          # macOS app icon
+ICO = os.path.join(ICON_DIR, "AppIcon.ico")            # Windows .exe icon
 
 a = Analysis(
     [os.path.join(APP_DIR, "app.py")],
@@ -15,14 +18,15 @@ a = Analysis(
     noarchive=False,
 )
 pyz = PYZ(a.pure)
-exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="Marker Cutter", console=False)
+exe = EXE(pyz, a.scripts, [], exclude_binaries=True, name="Marker Cutter", console=False,
+          icon=ICO if sys.platform == "win32" else None)   # on macOS the icon belongs to the .app bundle below
 coll = COLLECT(exe, a.binaries, a.datas, name="Marker Cutter")
 
 if sys.platform == "darwin":
     app = BUNDLE(
         coll,
         name="Marker Cutter.app",
-        icon=None,
+        icon=ICNS,
         bundle_identifier="com.markercutter.app",
         info_plist={
             "CFBundleShortVersionString": "1.5",
