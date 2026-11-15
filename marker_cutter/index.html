@@ -205,6 +205,21 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':
 const fmt = t => { t=Math.floor(t); const p=n=>String(n).padStart(2,'0'); return p(Math.floor(t/3600))+':'+p(Math.floor(t%3600/60))+':'+p(t%60); };
 const slug = s => s.replace(/[\\/:*?"<>|]/g,'_').replace(/\s+/g,'-');
 
+// A session couldn't be opened: explain why, in plain language, and offer a way forward.
+function showLoadProblem(d) {
+  const remembered = d.kind === 'remembered';          // the app auto-opened the last session; the user didn't just pick it
+  const e = $('empty');
+  e.classList.remove('err');
+  e.innerHTML = `<div style="max-width:640px;margin:0 auto;display:flex;flex-direction:column;gap:12px;align-items:center">
+    <b style="font-size:16px;color:var(--text)">${remembered ? 'Couldn’t open your last session' : 'Couldn’t open that session'}</b>
+    ${d.path ? `<code class="mono" style="font-size:12px;word-break:break-all">${esc(d.path)}</code>` : ''}
+    <span>${esc(d.error)}</span>
+    <span>Click <b style="color:var(--text)">Load session…</b> to choose another${remembered ? ', or reconnect the drive and try again' : ''}.</span>
+    ${remembered ? '<button class="btn" id="retry" type="button">Try again</button>' : ''}
+  </div>`;
+  if (remembered) $('retry').addEventListener('click', () => loadSession(''));
+}
+
 async function loadSession(path) {
   $('empty').hidden = false; $('empty').textContent = 'Reading session…'; $('empty').classList.remove('err');
   const r = await fetch('/api/session' + (path ? '?path=' + encodeURIComponent(path) : ''));
@@ -213,7 +228,7 @@ async function loadSession(path) {
     $('app').hidden = true;
     $('empty').hidden = false;
     if (d.error === 'no-session') $('empty').textContent = 'Click “Load session…” and choose a .tracks file.';
-    else { $('empty').textContent = d.error; $('empty').classList.add('err'); }
+    else showLoadProblem(d);
     return;
   }
   S.data = d; S.songs = new Set(); S.mono = -1; S.pair = []; S.keepStatus = false;

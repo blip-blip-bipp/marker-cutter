@@ -15,6 +15,7 @@ import sys
 import threading
 import urllib.parse
 import uuid
+import xml.etree.ElementTree as ET
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -55,6 +56,26 @@ def _read_last():
 DEFAULT_SESSION = sys.argv[1] if len(sys.argv) > 1 and not sys.argv[1].startswith("-") else _read_last()
 
 
+class NoMarkersError(Exception):
+    """The session loaded fine but has nothing to cut."""
+
+
+def explain_load_error(path, exc):
+    """Plain-language reason a session couldn't be opened (instead of a raw Python exception)."""
+    p = os.path.expanduser(path)
+    if isinstance(exc, NoMarkersError):
+        return str(exc)
+    if isinstance(exc, PermissionError):
+        return ("Permission was denied. On macOS, allow Marker Cutter to access that folder or drive "
+                "(System Settings → Privacy & Security → Files and Folders).")
+    if isinstance(exc, FileNotFoundError) or not os.path.exists(p):
+        return ("That file or folder wasn't found. It may have been moved or deleted, or it's on an "
+                "external or network drive that isn't connected.")
+    if isinstance(exc, (ET.ParseError, AttributeError, TypeError, KeyError)):
+        return "That doesn't look like a readable Tracks Live session (.tracks) file."
+    return f"{type(exc).__name__}: {exc}"
+
+
 def session_created_date(tpath, base):
     """Tracks Live rewrites SessionInfo 'created' on every save, so the earliest value found in the
     session file and its Session File Backups is the real creation date. Returns YYYY-MM-DD or ''."""
@@ -82,6 +103,9 @@ FILENAME_TAGS = ("session", "marker", "date", "start", "marker_no", "track_no", 
 def describe_session(path):
     """Everything the GUI needs: format info, tracks (with channel count), regions marker->next marker."""
     tpath, base, sr, markers, tracks, end = core.load_session(path)
+    if not markers:
+        raise NoMarkersError("This session has no markers yet. Add markers in Tracks Live, save the "
+                             "session, then load it again.")
     bit_depth = None
     out_tracks = []
     for i, t in enumerate(tracks):
@@ -283,7 +307,9 @@ class Handler(BaseHTTPRequestHandler):
                     pass
                 self._json(info)
             except Exception as e:  # report to the GUI instead of crashing
-                self._json({"error": f"{type(e).__name__}: {e}"}, 200)
+                # kind: was this the remembered last session (auto-opened) or one the user just chose?
+                self._json({"error": explain_load_error(path, e), "path": path,
+                            "kind": "chosen" if q.get("path") else "remembered"}, 200)
         else:
             self.send_error(404)
 

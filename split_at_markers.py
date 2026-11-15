@@ -111,7 +111,8 @@ def load_session(arg):
     sr = int(root.find("SessionInfo").get("sampleRate", "48000"))
 
     markers = []
-    for m in root.find("Markers"):
+    marker_el = root.find("Markers")            # a session saved before any markers were added has no Markers section
+    for m in (marker_el if marker_el is not None else []):
         markers.append((int(m.get("position")), m.get("name") or "", int(m.get("number", "0"))))
     markers.sort()
 
