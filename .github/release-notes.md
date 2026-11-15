@@ -2,6 +2,10 @@ Standalone desktop app that cuts a **Waves Tracks Live** session into per-song W
 It reads the saved `.tracks` file and the session's audio, and writes new files; your session and
 recordings are never modified.
 
+## What's new in v1.6
+
+- New app icon on macOS and Windows, drawn from the Marker Cutter logo.
+
 ## Downloads
 
 | File | For |
